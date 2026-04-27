@@ -1,0 +1,407 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>StockSense — NSE Intelligence Dashboard</title>
+  <link href="https://fonts.googleapis.com/css2?family=DM+Mono:wght@300;400;500&family=Bebas+Neue&family=DM+Sans:wght@300;400;500;600&display=swap" rel="stylesheet" />
+  <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
+  <style>
+    :root {
+      --bg: #080c10;
+      --bg2: #0e1520;
+      --bg3: #141e2e;
+      --border: rgba(255,255,255,0.06);
+      --accent: #00e5a0;
+      --accent2: #0099ff;
+      --accent3: #ff5252;
+      --text: #e8eef5;
+      --muted: #6b7a90;
+    }
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    body { background: var(--bg); color: var(--text); font-family: 'DM Sans', sans-serif; min-height: 100vh; overflow-x: hidden; }
+    body::before { content:''; position:fixed; top:-200px; left:-200px; width:600px; height:600px; background:radial-gradient(circle,rgba(0,229,160,0.06) 0%,transparent 70%); pointer-events:none; z-index:0; }
+    body::after { content:''; position:fixed; bottom:-200px; right:-200px; width:500px; height:500px; background:radial-gradient(circle,rgba(0,153,255,0.05) 0%,transparent 70%); pointer-events:none; z-index:0; }
+
+    header { position:sticky; top:0; z-index:100; background:rgba(8,12,16,0.92); backdrop-filter:blur(20px); border-bottom:1px solid var(--border); padding:0 32px; display:flex; align-items:center; justify-content:space-between; height:64px; }
+    .logo { font-family:'Bebas Neue',sans-serif; font-size:28px; letter-spacing:3px; background:linear-gradient(135deg,var(--accent),var(--accent2)); -webkit-background-clip:text; -webkit-text-fill-color:transparent; }
+    .live-badge { display:flex; align-items:center; gap:8px; font-family:'DM Mono',monospace; font-size:12px; color:var(--accent); background:rgba(0,229,160,0.08); border:1px solid rgba(0,229,160,0.2); padding:6px 14px; border-radius:20px; }
+    .live-dot { width:7px; height:7px; border-radius:50%; background:var(--accent); animation:pulse 2s ease-in-out infinite; }
+    @keyframes pulse { 0%,100%{opacity:1;transform:scale(1)} 50%{opacity:0.4;transform:scale(0.8)} }
+
+    .app { display:grid; grid-template-columns:300px 1fr; height:calc(100vh - 64px); position:relative; z-index:1; }
+    .sidebar { background:var(--bg2); border-right:1px solid var(--border); display:flex; flex-direction:column; overflow:hidden; }
+    .sidebar-header { padding:20px 20px 12px; border-bottom:1px solid var(--border); }
+    .sidebar-title { font-size:10px; letter-spacing:2px; text-transform:uppercase; color:var(--muted); font-family:'DM Mono',monospace; margin-bottom:12px; }
+    .search-box { width:100%; background:var(--bg3); border:1px solid var(--border); border-radius:8px; padding:10px 14px; color:var(--text); font-family:'DM Sans',sans-serif; font-size:13px; outline:none; transition:border-color 0.2s; }
+    .search-box:focus { border-color:var(--accent); }
+    .search-box::placeholder { color:var(--muted); }
+
+    .company-list { flex:1; overflow-y:auto; padding:8px 0; }
+    .company-list::-webkit-scrollbar { width:4px; }
+    .company-list::-webkit-scrollbar-thumb { background:var(--border); border-radius:2px; }
+
+    .company-item { display:flex; align-items:center; justify-content:space-between; padding:12px 20px; cursor:pointer; transition:all 0.15s; border-left:3px solid transparent; }
+    .company-item:hover { background:rgba(0,229,160,0.04); border-left-color:rgba(0,229,160,0.3); }
+    .company-item.active { background:rgba(0,229,160,0.08); border-left-color:var(--accent); }
+    .company-left { display:flex; flex-direction:column; gap:3px; }
+    .company-sym { font-family:'DM Mono',monospace; font-size:13px; font-weight:500; }
+    .company-name { font-size:11px; color:var(--muted); }
+    .company-right { text-align:right; }
+    .company-price { font-family:'DM Mono',monospace; font-size:13px; font-weight:500; }
+    .company-ret { font-size:11px; font-family:'DM Mono',monospace; }
+    .pos { color:var(--accent); }
+    .neg { color:var(--accent3); }
+
+    .main { display:flex; flex-direction:column; overflow-y:auto; background:var(--bg); }
+    .main::-webkit-scrollbar { width:6px; }
+    .main::-webkit-scrollbar-thumb { background:var(--border); border-radius:3px; }
+
+    .welcome { display:flex; flex-direction:column; align-items:center; justify-content:center; flex:1; padding:60px 40px; text-align:center; min-height:300px; }
+    .welcome-icon { font-size:64px; margin-bottom:24px; }
+    .welcome h2 { font-family:'Bebas Neue',sans-serif; font-size:48px; letter-spacing:4px; background:linear-gradient(135deg,var(--text),var(--muted)); -webkit-background-clip:text; -webkit-text-fill-color:transparent; margin-bottom:12px; }
+    .welcome p { color:var(--muted); font-size:15px; max-width:400px; line-height:1.6; }
+
+    .gainers-losers { display:grid; grid-template-columns:1fr 1fr; gap:16px; padding:24px; }
+    .gl-card { background:var(--bg2); border:1px solid var(--border); border-radius:12px; padding:16px; }
+    .gl-title { font-size:10px; letter-spacing:2px; text-transform:uppercase; color:var(--muted); font-family:'DM Mono',monospace; margin-bottom:14px; }
+    .gl-row { display:flex; justify-content:space-between; align-items:center; padding:8px 0; border-bottom:1px solid var(--border); font-size:13px; cursor:pointer; }
+    .gl-row:hover { opacity:0.8; }
+    .gl-row:last-child { border-bottom:none; }
+
+    .dashboard { padding:24px; display:none; flex-direction:column; gap:20px; }
+    .dashboard.visible { display:flex; }
+
+    .stock-header { display:flex; align-items:flex-end; justify-content:space-between; padding:24px; background:var(--bg2); border:1px solid var(--border); border-radius:14px; }
+    .stock-title { display:flex; flex-direction:column; gap:6px; }
+    .stock-symbol { font-family:'Bebas Neue',sans-serif; font-size:40px; letter-spacing:3px; line-height:1; }
+    .stock-fullname { color:var(--muted); font-size:14px; }
+    .stock-price-block { text-align:right; }
+    .stock-price { font-family:'DM Mono',monospace; font-size:36px; font-weight:500; line-height:1; }
+    .stock-change { font-family:'DM Mono',monospace; font-size:15px; margin-top:6px; }
+
+    .metrics-grid { display:grid; grid-template-columns:repeat(4,1fr); gap:12px; }
+    .metric-card { background:var(--bg2); border:1px solid var(--border); border-radius:12px; padding:18px; transition:border-color 0.2s; }
+    .metric-card:hover { border-color:rgba(0,229,160,0.2); }
+    .metric-label { font-size:10px; letter-spacing:1.5px; text-transform:uppercase; color:var(--muted); font-family:'DM Mono',monospace; margin-bottom:10px; }
+    .metric-value { font-family:'DM Mono',monospace; font-size:22px; font-weight:500; }
+    .metric-sub { font-size:11px; color:var(--muted); margin-top:4px; }
+
+    .chart-card { background:var(--bg2); border:1px solid var(--border); border-radius:14px; padding:20px; }
+    .chart-header { display:flex; align-items:center; justify-content:space-between; margin-bottom:20px; }
+    .chart-title { font-size:12px; letter-spacing:2px; text-transform:uppercase; color:var(--muted); font-family:'DM Mono',monospace; }
+    .time-tabs { display:flex; gap:6px; }
+    .time-tab { padding:6px 14px; font-size:12px; font-family:'DM Mono',monospace; background:var(--bg3); border:1px solid var(--border); border-radius:6px; color:var(--muted); cursor:pointer; transition:all 0.15s; }
+    .time-tab:hover { border-color:var(--accent); color:var(--accent); }
+    .time-tab.active { background:rgba(0,229,160,0.1); border-color:var(--accent); color:var(--accent); }
+    .chart-wrap { position:relative; }
+
+    .compare-section { background:var(--bg2); border:1px solid var(--border); border-radius:14px; padding:20px; }
+    .compare-controls { display:flex; gap:12px; align-items:center; margin-bottom:20px; flex-wrap:wrap; }
+    select { background:var(--bg3); border:1px solid var(--border); border-radius:8px; color:var(--text); font-family:'DM Sans',sans-serif; font-size:13px; padding:10px 14px; outline:none; cursor:pointer; }
+    select:focus { border-color:var(--accent); }
+    .btn { padding:10px 20px; background:linear-gradient(135deg,var(--accent),rgba(0,229,160,0.7)); border:none; border-radius:8px; color:#080c10; font-family:'DM Sans',sans-serif; font-weight:600; font-size:13px; cursor:pointer; transition:opacity 0.15s; }
+    .btn:hover { opacity:0.85; }
+
+    .loading { display:flex; align-items:center; justify-content:center; padding:60px; color:var(--muted); font-family:'DM Mono',monospace; font-size:13px; gap:12px; }
+    .spin { width:20px; height:20px; border:2px solid var(--border); border-top-color:var(--accent); border-radius:50%; animation:spin 0.8s linear infinite; }
+    @keyframes spin { to{transform:rotate(360deg)} }
+
+    @media(max-width:768px) {
+      .app{grid-template-columns:1fr}
+      .sidebar{height:260px}
+      .metrics-grid{grid-template-columns:repeat(2,1fr)}
+      .gainers-losers{grid-template-columns:1fr}
+    }
+  </style>
+</head>
+<body>
+<header>
+  <div class="logo">StockSense</div>
+  <div class="live-badge"><div class="live-dot"></div>NSE DATA LIVE</div>
+</header>
+
+<div class="app">
+  <aside class="sidebar">
+    <div class="sidebar-header">
+      <div class="sidebar-title">Markets — NSE</div>
+      <input type="text" class="search-box" id="searchBox" placeholder="Search company..." oninput="filterCompanies()" />
+    </div>
+    <div class="company-list" id="companyList">
+      <div class="loading"><div class="spin"></div>Loading...</div>
+    </div>
+  </aside>
+
+  <main class="main" id="mainArea">
+    <div id="welcomeArea">
+      <div class="welcome">
+        <div class="welcome-icon">📈</div>
+        <h2>Select a Stock</h2>
+        <p>Click any company from the left panel to view charts, key metrics, and AI-powered insights.</p>
+      </div>
+      <div class="gainers-losers" id="glSection"></div>
+    </div>
+    <div class="dashboard" id="dashboard"></div>
+  </main>
+</div>
+
+<script>
+const API = '';
+let allCompanies = [];
+let currentSymbol = null;
+let currentDays = 30;
+let charts = {};
+
+Chart.defaults.color = '#6b7a90';
+Chart.defaults.borderColor = 'rgba(255,255,255,0.05)';
+Chart.defaults.font.family = "'DM Mono', monospace";
+
+async function init() {
+  await loadCompanies();
+  await loadGainersLosers();
+}
+
+async function loadCompanies() {
+  const res = await fetch(`${API}/companies`);
+  const data = await res.json();
+  allCompanies = data.companies;
+  renderCompanyList(allCompanies);
+}
+
+function renderCompanyList(companies) {
+  const list = document.getElementById('companyList');
+  list.innerHTML = companies.map(c => {
+    const ret = c.daily_return_pct;
+    const retStr = ret !== null ? (ret >= 0 ? `+${ret}%` : `${ret}%`) : '';
+    const retClass = ret >= 0 ? 'pos' : 'neg';
+    const sym = c.symbol.replace('.NS','');
+    return `<div class="company-item" id="item-${c.symbol}" onclick="selectCompany('${c.symbol}','${c.company_name.replace(/'/g,"\\'")}')">
+      <div class="company-left">
+        <div class="company-sym">${sym}</div>
+        <div class="company-name">${c.company_name}</div>
+      </div>
+      <div class="company-right">
+        <div class="company-price">&#8377;${c.latest_close ? c.latest_close.toFixed(2) : '--'}</div>
+        <div class="company-ret ${retClass}">${retStr}</div>
+      </div>
+    </div>`;
+  }).join('');
+}
+
+function filterCompanies() {
+  const q = document.getElementById('searchBox').value.toLowerCase();
+  renderCompanyList(allCompanies.filter(c => c.symbol.toLowerCase().includes(q) || c.company_name.toLowerCase().includes(q)));
+}
+
+async function selectCompany(symbol, name) {
+  currentSymbol = symbol;
+  document.querySelectorAll('.company-item').forEach(el => el.classList.remove('active'));
+  const item = document.getElementById(`item-${symbol}`);
+  if (item) item.classList.add('active');
+
+  document.getElementById('welcomeArea').style.display = 'none';
+  const dash = document.getElementById('dashboard');
+  dash.classList.add('visible');
+  dash.innerHTML = '<div class="loading"><div class="spin"></div>Loading stock data...</div>';
+
+  const [stockRes, summaryRes] = await Promise.all([
+    fetch(`${API}/data/${symbol}?days=${currentDays}`),
+    fetch(`${API}/summary/${symbol}`)
+  ]);
+  const stockData = await stockRes.json();
+  const summary = await summaryRes.json();
+
+  dash.innerHTML = '';
+  buildDashboard(dash, summary, stockData.data);
+}
+
+function buildDashboard(container, summary, data) {
+  // Header
+  const ret = summary.daily_return_pct;
+  const retStr = ret >= 0 ? `▲ +${ret}%` : `▼ ${ret}%`;
+  const retClass = ret >= 0 ? 'pos' : 'neg';
+  addHTML(container, `
+    <div class="stock-header">
+      <div class="stock-title">
+        <div class="stock-symbol">${summary.symbol.replace('.NS','')}</div>
+        <div class="stock-fullname">${summary.company_name} &nbsp;·&nbsp; NSE</div>
+      </div>
+      <div class="stock-price-block">
+        <div class="stock-price">&#8377;${summary.latest_close.toFixed(2)}</div>
+        <div class="stock-change ${retClass}">${retStr} today</div>
+      </div>
+    </div>`);
+
+  // Metrics
+  const metrics = [
+    ['52W High', `&#8377;${summary.week52_high?.toFixed(2) || '--'}`, 'Yearly max'],
+    ['52W Low', `&#8377;${summary.week52_low?.toFixed(2) || '--'}`, 'Yearly min'],
+    ['Volatility', summary.volatility_score ? `${summary.volatility_score.toFixed(3)}%` : '--', 'Avg 30d std', ''],
+    ['30D Momentum', summary.momentum_30d_pct !== null ? `${summary.momentum_30d_pct > 0?'+':''}${summary.momentum_30d_pct}%` : '--', '30d price change', summary.momentum_30d_pct >= 0 ? 'pos' : 'neg'],
+    ['MA 7-Day', `&#8377;${summary.ma_7?.toFixed(2) || '--'}`, '7d moving avg'],
+    ['MA 20-Day', `&#8377;${summary.ma_20?.toFixed(2) || '--'}`, '20d moving avg'],
+    ['Avg Close', `&#8377;${summary.avg_close?.toFixed(2) || '--'}`, 'Historical avg'],
+    ['Last Updated', summary.latest_date, 'Trading day'],
+  ];
+  const grid = document.createElement('div');
+  grid.className = 'metrics-grid';
+  grid.innerHTML = metrics.map(([l,v,s,c]) => `
+    <div class="metric-card">
+      <div class="metric-label">${l}</div>
+      <div class="metric-value ${c||''}">${v}</div>
+      <div class="metric-sub">${s}</div>
+    </div>`).join('');
+  container.appendChild(grid);
+
+  // Price Chart
+  const priceCard = makeChartCard('Price Chart', 280, true);
+  container.appendChild(priceCard);
+  destroyChart('price');
+  charts.price = new Chart(priceCard.querySelector('#chartPrice'), {
+    type: 'line',
+    data: {
+      labels: data.map(d => d.date),
+      datasets: [
+        { label:'Close', data:data.map(d=>d.close), borderColor:'#00e5a0', borderWidth:2, pointRadius:0, tension:0.3, fill:true,
+          backgroundColor:(ctx)=>{ const g=ctx.chart.ctx.createLinearGradient(0,0,0,280); g.addColorStop(0,'rgba(0,229,160,0.2)'); g.addColorStop(1,'rgba(0,229,160,0)'); return g; }},
+        { label:'MA 7', data:data.map(d=>d.ma_7), borderColor:'#0099ff', borderWidth:1.5, pointRadius:0, tension:0.3, borderDash:[4,3] },
+        { label:'MA 20', data:data.map(d=>d.ma_20), borderColor:'#ff5252', borderWidth:1.5, pointRadius:0, tension:0.3, borderDash:[6,4] },
+      ]
+    },
+    options: getChartOpts('Price (&#8377;)')
+  });
+
+  // Volume
+  const volCard = makeChartCard('Volume', 180, false);
+  container.appendChild(volCard);
+  destroyChart('vol');
+  charts.vol = new Chart(volCard.querySelector('#chartVol'), {
+    type:'bar',
+    data:{ labels:data.map(d=>d.date), datasets:[{ label:'Volume', data:data.map(d=>d.volume), backgroundColor:'rgba(0,153,255,0.4)', borderColor:'rgba(0,153,255,0.7)', borderWidth:1 }] },
+    options: getChartOpts('Volume', false)
+  });
+
+  // Returns
+  const rets = data.map(d => d.daily_return_pct);
+  const retCard = makeChartCard('Daily Returns (%)', 180, false);
+  container.appendChild(retCard);
+  destroyChart('ret');
+  charts.ret = new Chart(retCard.querySelector('#chartRet'), {
+    type:'bar',
+    data:{ labels:data.map(d=>d.date), datasets:[{ label:'Return %', data:rets,
+      backgroundColor:rets.map(r=>r>=0?'rgba(0,229,160,0.5)':'rgba(255,82,82,0.5)'),
+      borderColor:rets.map(r=>r>=0?'#00e5a0':'#ff5252'), borderWidth:1 }] },
+    options: getChartOpts('Return %', false)
+  });
+
+  // Compare
+  const cmpDiv = document.createElement('div');
+  cmpDiv.className = 'compare-section';
+  cmpDiv.innerHTML = `
+    <div class="chart-header"><div class="chart-title">Compare Stocks (Normalized %)</div></div>
+    <div class="compare-controls">
+      <select id="cmpS1">${allCompanies.map(c=>`<option value="${c.symbol}">${c.symbol.replace('.NS','')} — ${c.company_name}</option>`).join('')}</select>
+      <span style="color:var(--muted);font-family:'DM Mono',monospace">VS</span>
+      <select id="cmpS2">${allCompanies.map(c=>`<option value="${c.symbol}">${c.symbol.replace('.NS','')} — ${c.company_name}</option>`).join('')}</select>
+      <button class="btn" onclick="runCompare()">Compare</button>
+    </div>
+    <div id="cmpResult"></div>
+    <div style="display:none;height:260px;position:relative" id="cmpChartWrap"><canvas id="chartCmp"></canvas></div>`;
+  if (allCompanies.length > 1) cmpDiv.querySelector('#cmpS2').selectedIndex = 1;
+  container.appendChild(cmpDiv);
+}
+
+function makeChartCard(title, height, hasTimeTabs) {
+  const id = title === 'Price Chart' ? 'chartPrice' : title === 'Volume' ? 'chartVol' : title.includes('Returns') ? 'chartRet' : 'chartCmp';
+  const div = document.createElement('div');
+  div.className = 'chart-card';
+  div.innerHTML = `
+    <div class="chart-header">
+      <div class="chart-title">${title}</div>
+      ${hasTimeTabs ? `<div class="time-tabs">
+        <div class="time-tab active" onclick="changeTime(30,this)">1M</div>
+        <div class="time-tab" onclick="changeTime(90,this)">3M</div>
+        <div class="time-tab" onclick="changeTime(180,this)">6M</div>
+        <div class="time-tab" onclick="changeTime(365,this)">1Y</div>
+      </div>` : ''}
+    </div>
+    <div class="chart-wrap" style="height:${height}px"><canvas id="${id}"></canvas></div>`;
+  return div;
+}
+
+async function changeTime(days, el) {
+  currentDays = days;
+  document.querySelectorAll('.time-tab').forEach(t => t.classList.remove('active'));
+  el.classList.add('active');
+  if (!currentSymbol) return;
+  const res = await fetch(`${API}/data/${currentSymbol}?days=${days}`);
+  const data = await res.json();
+  const d = data.data;
+  if (charts.price) { charts.price.data.labels=d.map(x=>x.date); charts.price.data.datasets[0].data=d.map(x=>x.close); charts.price.data.datasets[1].data=d.map(x=>x.ma_7); charts.price.data.datasets[2].data=d.map(x=>x.ma_20); charts.price.update(); }
+  if (charts.vol) { charts.vol.data.labels=d.map(x=>x.date); charts.vol.data.datasets[0].data=d.map(x=>x.volume); charts.vol.update(); }
+  if (charts.ret) { const rets=d.map(x=>x.daily_return_pct); charts.ret.data.labels=d.map(x=>x.date); charts.ret.data.datasets[0].data=rets; charts.ret.data.datasets[0].backgroundColor=rets.map(r=>r>=0?'rgba(0,229,160,0.5)':'rgba(255,82,82,0.5)'); charts.ret.update(); }
+}
+
+async function runCompare() {
+  const s1 = document.getElementById('cmpS1')?.value;
+  const s2 = document.getElementById('cmpS2')?.value;
+  if (!s1 || !s2 || s1 === s2) { alert('Please select two different stocks.'); return; }
+  const res = await fetch(`${API}/compare?symbol1=${s1}&symbol2=${s2}`);
+  const data = await res.json();
+  const p1 = data[s1]?.performance_pct ?? 0;
+  const p2 = data[s2]?.performance_pct ?? 0;
+  document.getElementById('cmpResult').innerHTML = `
+    <div style="display:flex;gap:16px;margin-bottom:16px;flex-wrap:wrap">
+      <div class="metric-card" style="flex:1"><div class="metric-label">${s1.replace('.NS','')}</div><div class="metric-value ${p1>=0?'pos':'neg'}">${p1>=0?'+':''}${p1.toFixed(2)}%</div><div class="metric-sub">90d performance</div></div>
+      <div class="metric-card" style="flex:1"><div class="metric-label">${s2.replace('.NS','')}</div><div class="metric-value ${p2>=0?'pos':'neg'}">${p2>=0?'+':''}${p2.toFixed(2)}%</div><div class="metric-sub">90d performance</div></div>
+      <div class="metric-card" style="flex:1;border-color:rgba(0,229,160,0.3)"><div class="metric-label">Winner</div><div class="metric-value pos">${data.winner?.replace('.NS','')}</div><div class="metric-sub">By ${data.difference_pct?.toFixed(2)}%</div></div>
+    </div>`;
+  const wrap = document.getElementById('cmpChartWrap');
+  wrap.style.display = 'block';
+  destroyChart('cmp');
+  charts.cmp = new Chart(document.getElementById('chartCmp'), {
+    type:'line',
+    data:{ labels:data[s1].data.map(d=>d.date), datasets:[
+      {label:s1.replace('.NS',''), data:data[s1].data.map(d=>d.normalized), borderColor:'#00e5a0', borderWidth:2, pointRadius:0, tension:0.3},
+      {label:s2.replace('.NS',''), data:data[s2].data.map(d=>d.normalized), borderColor:'#ff5252', borderWidth:2, pointRadius:0, tension:0.3},
+    ]},
+    options: getChartOpts('Normalized Return (%)')
+  });
+}
+
+async function loadGainersLosers() {
+  const res = await fetch(`${API}/gainers-losers?top_n=5`);
+  const data = await res.json();
+  const sec = document.getElementById('glSection');
+  if (!data?.top_gainers) { sec.style.display='none'; return; }
+  const mkRows = (arr, cls) => arr.map(r => `
+    <div class="gl-row" onclick="selectCompany('${r.symbol}','${r.company_name.replace(/'/g,"\\'")}')">
+      <div><div style="font-size:13px">${r.symbol.replace('.NS','')}</div><div style="font-size:11px;color:var(--muted)">${r.company_name}</div></div>
+      <div class="${cls}" style="font-family:'DM Mono',monospace;font-size:13px">${r.daily_return_pct>=0?'+':''}${r.daily_return_pct}%</div>
+    </div>`).join('');
+  sec.innerHTML = `
+    <div class="gl-card"><div class="gl-title">🟢 Top Gainers</div>${mkRows(data.top_gainers,'pos')}</div>
+    <div class="gl-card"><div class="gl-title">🔴 Top Losers</div>${mkRows(data.top_losers,'neg')}</div>`;
+}
+
+function addHTML(container, html) { const d = document.createElement('div'); d.innerHTML = html; container.appendChild(d.firstElementChild); }
+function destroyChart(key) { if (charts[key]) { charts[key].destroy(); delete charts[key]; } }
+function getChartOpts(yLabel, legend = true) {
+  return {
+    responsive:true, maintainAspectRatio:false,
+    interaction:{mode:'index',intersect:false},
+    plugins:{
+      legend:{display:legend, labels:{boxWidth:12,font:{size:11}}},
+      tooltip:{backgroundColor:'rgba(14,21,32,0.95)',borderColor:'rgba(255,255,255,0.1)',borderWidth:1}
+    },
+    scales:{
+      x:{grid:{color:'rgba(255,255,255,0.04)'},ticks:{maxTicksLimit:8,maxRotation:0}},
+      y:{grid:{color:'rgba(255,255,255,0.04)'},title:{display:true,text:yLabel}}
+    }
+  };
+}
+
+init();
+</script>
+</body>
+</html>
