@@ -6,9 +6,10 @@ import numpy as np
 from datetime import datetime, timedelta
 from sqlalchemy.orm import Session
 from sqlalchemy import func, desc, asc
-from database import StockData
-from data_fetcher import COMPANIES
-
+# from database import StockData
+# from data_fetcher import COMPANIES
+from backend.database import StockData
+from backend.data_fetcher import COMPANIES
 
 def get_companies(db: Session):
     """Return all companies with latest price and daily return."""
