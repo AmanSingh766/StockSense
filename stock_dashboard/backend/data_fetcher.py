@@ -9,7 +9,8 @@ import numpy as np
 from datetime import datetime, timedelta
 from sqlalchemy.exc import IntegrityError
 
-from database import SessionLocal, StockData
+# from database import SessionLocal, StockData
+from backend.database import SessionLocal, StockData
 
 # Top 15 NSE stocks (Nifty blue chips)
 COMPANIES = {
@@ -35,7 +36,8 @@ def fetch_and_store_all():
     """Fetch 1 year of data for all companies and store in DB.
     Falls back to realistic mock data if network is unavailable.
     """
-    from mock_data import generate_mock_data
+    # from mock_data import generate_mock_data
+    from backend.mock_data import generate_mock_data
 
     db = SessionLocal()
     end_date = datetime.today()
