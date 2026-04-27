@@ -24,6 +24,7 @@ COPY . .
 
 # Optional: run ingestion at runtime instead (better)
 # RUN python data/ingest.py || echo "Skipped"
+ENV PYTHONPATH=/app
 
 EXPOSE 10000
 
