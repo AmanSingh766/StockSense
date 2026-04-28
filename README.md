@@ -1,79 +1,165 @@
-# StockSense — NSE Stock Intelligence Dashboard
+# 🚀 StockSense — NSE Stock Intelligence Dashboard
 
-A full-stack financial data platform built with FastAPI + SQLite + yfinance + Chart.js for the Jarnox Internship Assignment.
+A full-stack financial data platform built with **FastAPI + SQLite + yfinance + Chart.js**.
 
-## Features
-- 15 blue-chip NSE stocks fetched live via yfinance
-- 6 REST API endpoints with Swagger docs
-- Calculated metrics: Daily Return, MA-7, MA-20, Volatility Score, 30D Momentum
-- Beautiful dark-themed single-page dashboard with Chart.js
-- Stock comparison (normalized performance)
-- Top Gainers/Losers
-- Pearson correlation between any two stocks
+---
 
-## Project Structure
+## 📌 Features
+
+* 📊 Live & mock NSE stock data (15 blue-chip stocks)
+* ⚡ FastAPI backend with 6 REST APIs
+* 📈 Technical indicators:
+
+  * Daily Return
+  * MA-7, MA-20
+  * Volatility Score
+  * 30-Day Momentum
+* 📉 Stock comparison (normalized performance)
+* 🏆 Top gainers & losers
+* 🔗 Correlation analysis (Pearson)
+* 🌙 Modern dark-themed UI (Chart.js)
+
+---
+
+## 🏗️ Project Structure
+
 ```
-stock_dashboard/
+StockSense_Dashboard/
+│
 ├── backend/
-│   ├── main.py          # FastAPI app + API routes
-│   ├── database.py      # SQLAlchemy ORM models
-│   ├── data_fetcher.py  # yfinance download + Pandas cleaning
-│   └── crud.py          # DB query functions
+│   ├── main.py
+│   ├── database.py
+│   ├── data_fetcher.py
+│   ├── crud.py
+│   └── mock_data.py
+│
 ├── frontend/
-│   └── index.html       # Dashboard (Chart.js)
+│   └── index.html
+│
 ├── requirements.txt
-└── README.md
+├── runtime.txt
+├── README.md
 ```
 
-## Setup
+---
 
-### 1. Install dependencies
+## ⚙️ Setup & Run (Local)
+
+### 1️⃣ Clone repo
+
+```bash
+git clone https://github.com/AmanSingh766/StockSense.git
+cd StockSense_Dashboard
+```
+
+---
+
+### 2️⃣ Create virtual environment
+
+```bash
+python -m venv venv
+venv\Scripts\activate   # Windows
+```
+
+---
+
+### 3️⃣ Install dependencies
+
 ```bash
 pip install -r requirements.txt
 ```
 
-### 2. Run the server
+---
+
+### 4️⃣ Run server
+
 ```bash
-cd backend
-python main.py
+python -m uvicorn backend.main:app --reload
 ```
-On first run, ~1 year of NSE stock data is downloaded (~30-60 seconds).
 
-### 3. Open in browser
-- Dashboard: http://localhost:8000
-- Swagger Docs: http://localhost:8000/docs
+---
 
-## API Endpoints
+### 5️⃣ Open in browser
 
-| Endpoint | Method | Description |
-|----------|--------|-------------|
-| /companies | GET | All companies with latest price |
-| /data/{symbol} | GET | Historical OHLCV + metrics |
-| /summary/{symbol} | GET | 52-week high/low, volatility, momentum |
-| /compare?symbol1=X&symbol2=Y | GET | Normalized 90-day comparison |
-| /gainers-losers | GET | Top gainers and losers |
-| /correlation?symbol1=X&symbol2=Y | GET | Pearson correlation |
+* 🌐 Dashboard → http://127.0.0.1:8000
+* 📄 API Docs → http://127.0.0.1:8000/docs
 
-## Calculated Metrics
+---
 
-| Metric | Formula |
-|--------|---------|
-| Daily Return | (Close - Open) / Open |
-| 7-Day MA | Rolling 7-day average of close |
-| 20-Day MA | Rolling 20-day average of close |
-| Volatility Score | Rolling 7-day std of daily returns |
-| 52-Week High/Low | Rolling max/min over 252 days |
-| Momentum (30D) | % change from 30 days ago |
-| Correlation | Pearson r of daily returns (90 days) |
+## 📡 API Endpoints
 
-## Custom Insights Added
-1. Volatility Score — Rolling std of daily returns (risk indicator)
-2. 30D Momentum — Trend direction over the last month
-3. Pearson Correlation API — How two stocks move together
-4. Normalized Comparison Chart — Fair relative performance view
-5. Top Gainers/Losers — Dynamic daily ranking
+| Endpoint            | Description               |
+| ------------------- | ------------------------- |
+| `/companies`        | List all stocks           |
+| `/data/{symbol}`    | Historical data + metrics |
+| `/summary/{symbol}` | 52-week insights          |
+| `/compare`          | Compare 2 stocks          |
+| `/gainers-losers`   | Top movers                |
+| `/correlation`      | Stock correlation         |
 
-## Tech Stack
-- Backend: Python 3.11, FastAPI, SQLAlchemy, SQLite
-- Data: yfinance, Pandas, NumPy
-- Frontend: HTML/CSS/JS, Chart.js 4
+---
+
+## 📊 Metrics Explained
+
+| Metric         | Description                 |
+| -------------- | --------------------------- |
+| Daily Return   | (Close - Open) / Open       |
+| MA-7 / MA-20   | Moving averages             |
+| Volatility     | Risk indicator              |
+| Momentum (30D) | Trend strength              |
+| Correlation    | Relationship between stocks |
+
+---
+
+## ⚠️ Notes
+
+* If **yfinance fails**, app automatically uses **mock data**
+* First run may take **30–60 seconds** (data fetching)
+* SQLite DB is created automatically
+
+---
+
+## 🌐 Deployment (Render)
+
+### Build Command
+
+```bash
+pip install -r requirements.txt
+```
+
+### Start Command
+
+```bash
+uvicorn backend.main:app --host 0.0.0.0 --port 10000
+```
+
+---
+
+## 👨‍💻 Tech Stack
+
+* Backend: FastAPI, SQLAlchemy
+* Database: SQLite
+* Data: Pandas, yfinance
+* Frontend: HTML, JS, Chart.js
+
+---
+
+## 💼 Author
+
+**Aman Singh**
+B.Tech CSE (Cloud + Security)
+
+---
+
+## ⭐ Final Note
+
+This project demonstrates:
+
+* Backend API development
+* Data processing & analytics
+* Full-stack integration
+* Real-world deployment
+
+---
+
+✨ Ready for internship & production-level showcase
