@@ -10,10 +10,9 @@ from fastapi.responses import FileResponse
 import uvicorn
 import os
 
-#  Correct imports
-from backend.database import init_db, SessionLocal
-from backend.data_fetcher import fetch_and_store_all
-from backend.crud import (
+from database import init_db, SessionLocal
+from data_fetcher import fetch_and_store_all
+from crud import (
     get_companies,
     get_stock_data,
     get_summary,

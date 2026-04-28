@@ -7,8 +7,8 @@ import sys
 import os
 
 sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
-from models.database import engine, SessionLocal, StockData, CompanyInfo, init_db
-# from backend.database import engine, SessionLocal, StockData, CompanyInfo, init_db
+# from models.database import engine, SessionLocal, StockData, CompanyInfo, init_db
+from backend.database import engine, SessionLocal, StockData, CompanyInfo, init_db
 
 # Indian NSE stocks + some popular ones
 COMPANIES = {
