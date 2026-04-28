@@ -37,3 +37,6 @@ jobs:
     - name: Test with pytest
       run: |
         pytest || true
+        - name: Deploy
+     run: |
+       echo "Deploy step yahan likhna padega (Render API ya SSH)"
